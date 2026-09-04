@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "autocall-structuring-agent"
+version = "0.1.0"
+description = "Autocall structuring agent"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.0",
+    "langgraph>=0.1.0",
+    "yfinance>=0.2.0",
+    "numpy>=1.24",
+    "scipy>=1.10",
+    "httpx>=0.24",
+    "pytest>=7.0",
+    "python-dotenv>=1.0",
+    "openai>=1.0.0",
+]
+
+[tool.setuptools]
+packages = []
