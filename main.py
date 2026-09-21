@@ -109,7 +109,35 @@ async def main() -> None:
 
         await app.ainvoke(initial_state, config)
         logger.info("INTERRUPT : Workflow suspendu. Validation humaine du Pricing requise.")
-        logger.info("APPROVAL : Pricing validé par le Structurer. Reprise du workflow...")
+        current_state = app.get_state(config).values
+        coupon = current_state.get("optimized_coupon", 0)
+        metrics = current_state.get("pricing_metrics", {})
+        if not coupon and not metrics:
+            pricing_result = current_state.get("pricing_result", {})
+            coupon = pricing_result.get("optimized_coupon", 0)
+            metrics = pricing_result
+
+        logger.info("📊 RÉSULTATS DU PRICING :")
+        logger.info(f"Coupon optimal : {coupon:.2f}%")
+        logger.info(f"Fair Value : {metrics.get('fair_value', 0):.2f}%")
+        logger.info(
+            "Proba Autocall : "
+            f"{metrics.get('autocall_probability', 0) * 100:.2f}% | "
+            f"Proba Perte : {metrics.get('capital_loss_probability', 0) * 100:.2f}%"
+        )
+        logger.info(
+            f"Delta : {metrics.get('delta', 0):.4f} | "
+            f"Vega : {metrics.get('vega', 0):.4f}"
+        )
+
+        approval = input(
+            "\n👉 [HITL] Approuver les conditions de Pricing pour émettre le Term Sheet ? (Y/n) : "
+        )
+        if approval.strip().lower() in {"n", "no", "non"}:
+            logger.warning("Pricing refusé par le Structurer. Arrêt du workflow.")
+            return
+
+        logger.info("Pricing validé par le Structurer. Reprise du workflow...")
         final_state = await app.ainvoke(Command(resume=True), config)
 
         logger.info("Workflow Execution Summary:")
