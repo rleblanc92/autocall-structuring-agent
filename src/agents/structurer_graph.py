@@ -1,7 +1,9 @@
 """LangGraph orchestrator for the Autocall Structurer agent."""
 
 from typing import Literal
+from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
+from langgraph.types import interrupt
 from openai import AsyncOpenAI
 
 from src.models.schemas import AutocallSpecs, MarketDataInput, PricingResult, StructurerState
@@ -78,6 +80,11 @@ def run_pricing_node(state: StructurerState) -> StructurerState:
     return state
 
 
+def approval_node(state: StructurerState) -> StructurerState:
+    interrupt("Validation manuelle requise pour le pricing")
+    return state
+
+
 async def generate_termsheet_node(state: StructurerState) -> StructurerState:
     try:
         specs = AutocallSpecs(**state["specs"])
@@ -96,10 +103,12 @@ async def generate_termsheet_node(state: StructurerState) -> StructurerState:
 
 def build_graph():
     graph = StateGraph(StructurerState)
+    memory = MemorySaver()
 
     graph.add_node("parse_request", parse_request_node)
     graph.add_node("fetch_data", fetch_data_node)
     graph.add_node("run_pricing", run_pricing_node)
+    graph.add_node("approval", approval_node)
     graph.add_node("generate_termsheet", generate_termsheet_node)
 
     graph.add_edge(START, "parse_request")
@@ -117,9 +126,10 @@ def build_graph():
     graph.add_conditional_edges(
         "run_pricing",
         check_node_status,
-        {"continue": "generate_termsheet", "abort": END},
+        {"continue": "approval", "abort": END},
     )
 
+    graph.add_edge("approval", "generate_termsheet")
     graph.add_edge("generate_termsheet", END)
 
-    return graph.compile()
+    return graph.compile(checkpointer=memory)

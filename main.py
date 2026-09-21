@@ -5,6 +5,7 @@ import logging
 import os
 
 from dotenv import load_dotenv
+from langgraph.types import Command
 from openai import AsyncOpenAI, AuthenticationError
 
 from src.agents.structurer_graph import build_graph
@@ -100,12 +101,16 @@ async def main() -> None:
         "client_request": client_request,
         "status": "initialized",
     }
+    config = {"configurable": {"thread_id": "1"}}
 
     try:
         logger.info("Executing workflow...")
         logger.info("-" * 80)
 
-        final_state = await app.ainvoke(initial_state)
+        await app.ainvoke(initial_state, config)
+        logger.info("INTERRUPT : Workflow suspendu. Validation humaine du Pricing requise.")
+        logger.info("APPROVAL : Pricing validé par le Structurer. Reprise du workflow...")
+        final_state = await app.ainvoke(Command(resume=True), config)
 
         logger.info("Workflow Execution Summary:")
         logger.info(f"Final Status: {final_state.get('status', 'UNKNOWN')}")

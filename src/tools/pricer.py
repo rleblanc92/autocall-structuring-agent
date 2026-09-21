@@ -10,7 +10,10 @@ def simulate_autocall_payoffs(
     market_data: MarketDataInput,
     coupon_rate: float,
     n_paths: int = 50_000,
+    seed: int = 42,
 ) -> tuple[np.ndarray, dict]:
+    np.random.seed(seed)
+
     S0 = market_data.spot_price
     r = market_data.risk_free_rate
     q = market_data.dividend_yield
@@ -122,8 +125,6 @@ def solve_target_coupon(
     target_fair_value: float = 98.5,
     n_paths: int = 50_000,
 ) -> PricingResult:
-    np.random.seed(42)
-
     def objective(rate: float) -> float:
         _, m = simulate_autocall_payoffs(specs, market_data, rate, n_paths)
         return m["fair_value"] - target_fair_value

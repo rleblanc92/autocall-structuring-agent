@@ -1,31 +1,41 @@
 # Autocall Structuring Agent
 
-An autonomous AI agent designed for Equity Derivatives Structuring. It translates Buy-Side constraints into an optimized Phoenix Autocall product, utilizes a vectorized Monte Carlo pricer to solve for the target coupon, and generates an institutional-grade Term Sheet.
+An autonomous AI agent designed for Equity Derivatives Structuring. It translates Buy-Side constraints into an optimized Phoenix Autocall product, utilizes a vectorized Monte Carlo pricer to solve for the target coupon, and generates a Term Sheet.
 
-*(Replace this text with a 10-15 second GIF showing the terminal execution and the final Term Sheet generation)*
+## 1. System Architecture (Front Office Oriented)
 
-## 1. System Architecture
-
-The workflow is orchestrated as a deterministic state machine using **LangGraph**, ensuring strict risk management and execution stability.
+The workflow is orchestrated as a deterministic state machine using **LangGraph**, ensuring strict risk management and execution stability. Crucially, the architecture integrates a **Human-in-the-Loop (HITL)** design, mandating explicit manager approval before any Term Sheet generation.
 
 ```text
 [Client Request] ──> [1. Pydantic Parser] ──> [2. Market Data] ──> [3. Monte Carlo Pricer]
                                                                              │
                                                                              ▼
-[Term Sheet & Risk Metrics] <── [5. LLM Report Gen] <── [4. Brent Root-Finding] ─┘
+[Term Sheet & Risk Metrics] <── [5. LLM Report Gen] <── [4. Manager Approval (HITL)] 
 ```
 
-## 2. Core Components
+## 2. The Quant Stack
 
-* **Quantitative Engine:** Vectorized Monte Carlo simulation for Geometric Brownian Motion (GBM). Implements antithetic variates for variance reduction and uses `scipy.optimize.brentq` to iteratively solve for the optimal coupon matching the bank's target fair value (e.g., 98.5%).
-* **Deterministic Parsing:** Uses OpenAI's Structured Outputs with strict `pydantic` schemas to extract product specifications (Underlying, Maturity, Autocall/Coupon/Protection barriers). This strictly prevents LLM hallucinations on critical financial parameters.
-* **Risk-Managed Orchestration:** LangGraph conditional edges act as circuit breakers. If market data fetching fails or the quantitative pricer cannot converge, the graph aborts gracefully rather than generating a flawed or unhedged term sheet.
+The quantitative pricing engine is optimized for performance, stability, and pricing accuracy:
 
-## 3. Quick Start
+* **Vectorized Simulation:** Implemented in pure `NumPy` for highly efficient, vectorized Geometric Brownian Motion (GBM) path generation across observation dates.
+* **Variance Reduction & Sensitivities:** Utilizes **Antithetic Variates** to reduce base simulation variance, and strictly enforces **Common Random Numbers (CRN)** (stateful seeding) to ensure stable, noise-free calculation of Greeks (Delta, Vega) via finite differences.
+* **Asynchronous Target Solving:** Integrates root-finding via `scipy.optimize.brentq` to iteratively solve for the exact annual coupon rate that matches the bank's predefined target fair value (e.g., 98.50%).
+
+## 3. Scope, Limitations, and Technical Roadmap
+
+To ensure full intellectual honesty regarding the quantitative capabilities of this proof-of-concept, the following limitations are explicitly stated. This engine is strictly a **Single-Asset Autocall Pricer**; it does not currently handle multi-asset basket structures (e.g., Worst-Of / Best-Of payoffs) nor does it implement multi-dimensional correlation matrices (e.g., Cholesky decomposition).
+
+The roadmap for bridging the gap between this prototype and a production-grade CIB engine includes:
+
+* **Modeling Framework:** The current engine assumes a standard Black-Scholes framework (Geometric Brownian Motion). The roadmap targets the integration of a Stochastic Local Volatility (SLV) model, calibrated via particle methods, to accurately capture forward skew and vol-of-vol risks.
+* **Risk Management & Sensitivities:** Greeks are currently approximated using Finite Differences (Bump & Revalue), which remains susceptible to numerical noise near barrier discontinuities. A major architectural evolution will involve deploying Algorithmic Adjoint Differentiation (AAD) to compute exact, noise-free risk sensitivities.
+* **Market Data Sourcing:** Due to the constraints of free public APIs, the pricer currently relies on a 1-year historical volatility proxy. A true institutional deployment requires the direct injection of full implied volatility surfaces.
+
+## 4. Quick Start
 
 ```bash
 # Clone the repository
-git clone [https://github.com/YOUR_USERNAME/autocall-structuring-agent.git](https://github.com/YOUR_USERNAME/autocall-structuring-agent.git)
+git clone [https://github.com/rleblanc92/autocall-structuring-agent.git](https://github.com/rleblanc92/autocall-structuring-agent.git)
 cd autocall-structuring-agent
 
 # Create virtual environment and install dependencies
@@ -35,13 +45,15 @@ pip install -r requirements.txt
 
 # Setup environment variables
 cp .env.example .env
-# Edit .env to add your OPENAI_API_KEY
+# Edit the .env file to add your OPENAI_API_KEY
 
 # Run the agent workflow
 python main.py
 ```
 
-## 4. Legal & Compliance Disclaimer
+## 5. Legal & Compliance Disclaimer
 
-**For educational and portfolio evaluation purposes only.** 
-This project uses free public market data (`yfinance`) and relies on historical volatility as a proxy for implied volatility due to API constraints. It does not reflect live market conditions, volatility skews, or actual bank pricing models. The outputs generated by this code do not constitute financial, investment, or legal advice.
+**NOT INVESTMENT ADVICE.** 
+**This project is for educational and portfolio evaluation purposes only.** 
+
+It uses free public market data (`yfinance`) and relies on historical volatility as a proxy for implied volatility due to API constraints. It does not reflect live market conditions, volatility skews, or actual bank pricing models. The outputs, risk metrics, and Term Sheets generated by this code do not constitute financial, investment, or legal advice, nor do they represent a real market valuation.
