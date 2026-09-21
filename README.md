@@ -50,6 +50,16 @@ cp .env.example .env
 # Run the agent workflow
 python main.py
 ```
+### How to Test Different Scenarios
+The agent is driven by natural language. By default, a test query is hardcoded in the entry point. To test different market conditions, underlying assets, or product parameters, simply open `main.py` and modify the `client_request` string variable:
+
+```python
+# main.py
+client_request = (
+    "Je cherche à structurer un Phoenix Autocall sur Apple (AAPL) sur 2 ans. "
+    "Observations mensuelles. Barrière Autocall à 95%, Coupon à 80% et Protection à 50%. "
+    "Quel coupon cible est atteignable ?"
+)
 
 ## 5. Legal & Compliance Disclaimer
 
