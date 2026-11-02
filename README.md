@@ -60,6 +60,7 @@ client_request = (
     "Observations mensuelles. Barrière Autocall à 95%, Coupon à 80% et Protection à 50%. "
     "Quel coupon cible est atteignable ?"
 )
+```
 
 ## 5. Legal & Compliance Disclaimer
 
